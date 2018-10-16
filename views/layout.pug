@@ -1,0 +1,48 @@
+doctype html
+html(lang='es')
+  head
+    title GameCenterControl
+    meta(charset='utf-8')
+    script.
+      if (typeof module === 'object') {window.module = module; module = undefined;}
+    script(src='./js/jquery-3.2.1.min.js')
+    script.
+      if (window.module) module = window.module;
+    script(src=baseUrl('js/popper.min.js'))
+    script(src=baseUrl('js/bootstrap.min.js'))
+    script(src=baseUrl('js/socket.io.slim.js'))
+    script(src=baseUrl('./js/vue.js'))
+    link(rel='stylesheet' href=baseUrl('css/bootstrap.min.css'))
+    link(rel="shortcut icon" href="./clock-icon.png")
+  body(style='background-color:transparent')
+    script.
+      formatTiempo = function(tiempo) {
+        var horas = 0, minutos = 0;
+        while (tiempo >= 60000) {
+          if (tiempo >= 60000) {minutos++; tiempo -= 60000;}
+          if (minutos >= 60) {horas++; minutos -= 60;}
+        }
+        return horas+':'+minutos
+      }
+      
+      formatExtras = function(extras) {
+        var soles = 0, centimos = 0;
+        while (extras >= 1) {
+          if (extras >= 1) {centimos++; extras -= 1;}
+          if (centimos >= 10) {soles++; centimos -= 10;}
+        }
+        return soles+'.'+centimos;
+      }
+      
+      formatAMPM = function(timeStamp) {
+        var date = new Date(timeStamp);
+        var hours = date.getHours();
+        var minutes = date.getMinutes();
+        var ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        minutes = minutes < 10 ? '0'+minutes : minutes;
+        var strTime = hours + ' : ' + minutes + ' ' + ampm;
+        return strTime;
+      }
+    block contenido

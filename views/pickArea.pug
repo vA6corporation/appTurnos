@@ -1,0 +1,28 @@
+extends ./layout.pug
+block contenido
+  #app.container
+    h1.text-center Control de Turnos - Seleccion de Area
+    ul.list-group
+      a.list-group-item.list-group-item-info.list-group-item-action(href=baseUrl("cordinador")) CORDINADOR DE TURNOS
+      a.list-group-item.list-group-item-action.text-uppercase(v-for='(item, index) in areas' :href=`'${baseUrl("pickAreaSelect/")}'+item`) 
+        | {{item}}
+  script.
+    var app = new Vue({
+      el: '#app',
+      data: {
+        areas: [
+          'recepcion1',
+          'recepcion2',
+          'medicina',
+          'musculoesqueletico',
+          'oftalmologia',
+          'rayos x',
+          'laboratorio',
+          'espirometria',
+          'audiometria',
+          'psicologia',
+          'electrocardiograma',
+          'odontologia',
+        ]
+      }
+    });

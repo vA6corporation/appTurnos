@@ -1,0 +1,64 @@
+extends ./layout.pug
+block contenido      
+  form.form-inline: div.container-fluid(style='padding-right:1px; padding-left:1px; overflow:hidden')
+    div.row: div.col-md-2
+      div.input-group
+        div.input-group-prepend
+          span.input-group-text(style='width:80px') Inicio:
+        input.form-control(id='inicio' type='text' readonly value=formatAMPM(tiempo.inicio))
+    div.row: div.col-md-2
+      div.input-group
+        div.input-group-prepend
+          span.input-group-text(style='width:80px') Tiempo:
+        input.form-control(id='tiempo' type='text' readonly)
+    div.row: div.col-md-2    
+      button.btn.btn-info.btn-block(id='hide' type='button') Pc #{id} | Ocultar
+  script.
+    var socket = io.connect('#{ip}:7766', {reconnect: true});
+    socket.emit("add-reloj");
+    var tTranscurrido = 0;
+    var tFin = #{tiempo.tiempo ? tiempo.tiempo : 'null'};
+    const remote = require('electron').remote
+    
+    function tiempoTranscurrido(cTimeStamp, timeStamp) {
+      var tiempo = cTimeStamp - timeStamp;
+      tTranscurrido = tiempo;
+      console.log(tTranscurrido);
+      var horas = 0, minutos = 0, segundos = 0;
+      while (tiempo >= 1000) {
+        segundos++; tiempo -= 1000;
+        if (segundos >= 60) {minutos++; segundos -= 60;}
+        if (minutos >= 60) {horas++; minutos -= 60;}
+      }
+      return horas+':'+minutos+':'+segundos;
+    }
+    
+    var contarTiempo = function() {
+      console.log(tTranscurrido+':'+(tFin - 300000));
+      if (tFin && tTranscurrido > (tFin - 300000)) {
+        console.log('Le qudan 5 min');
+      }
+      var cTimeStamp = new Date().getTime();
+      $('#tiempo').val(tiempoTranscurrido(cTimeStamp, #{tiempo.inicio}));
+    }
+    contarTiempo();
+    setInterval(contarTiempo, 1000);
+    
+    
+    
+    if (#{tiempo.tiempo ? 'true' : 'null'}) {
+      var cTime = new Date().getTime();
+      var tTranscurrido = cTime - #{tiempo.inicio};
+      var timeout = #{tiempo.tiempo} - (tTranscurrido + 300000);
+      console.log(timeout);
+      setTimeout(function(){
+        let myNotification = new Notification('vampiro eSportsCenter', {body: 'Le quedan 5 minutos', icon:'./clock-icon.png'})
+      }, timeout)
+    }
+    $('#hide').click(function(event) {
+      var window = remote.getCurrentWindow();
+      window.minimize();
+    });
+    socket.on("actualizar", function(){
+      location.reload();
+    });
