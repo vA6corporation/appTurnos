@@ -5,10 +5,13 @@ const server = require('http').Server(app);
 const io = require('socket.io')(server);
 const bodyParser = require('body-parser');
 const ip = '192.168.1.202';
-var attention = [];
 
-app.set('trust proxy', 1); // trust first proxy
+var attention = [];
+var areas = [];
+
+//app.set('trust proxy', 1); // trust first proxy
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json())
 app.use(session({
   secret: 'keyboard cat',
   resave: false,
@@ -42,28 +45,30 @@ app.locals.baseUrl = location => `http://${ip}:7766/${location}`;
 app.get('/', function(req, res) {
   var area = req.session.area || null;
   if (area) {
-    res.render('controlArea', {area: area})
+    res.render('controlArea', {
+      area: area,
+    })
   } else {
     res.render('pickArea');
   }
 });
 
-app.post('/setTurn', function(req, res) {
-  var client = req.body.client;
-  console.log(client);
-  res.json(client);
-  // var check = true;
-  // attention.forEach(item => {
-  //   if(client.idpaciente == item.idpaciente) {
-  //     check = false;
-  //   }
-  // });
-  // if(check) {
-  //   attention.push(client);
-  //   res.json({attention: attention});
-  // } else {
-  //   res.json({err: 'El cliente ya esta en la lista de atencion'});
-  // }
+app.post('/addClient', function(req, res) {
+  var client = req.body;
+  var check = true;
+  attention.forEach(item => {
+    if(client.idpaciente == item.idpaciente) {
+      check = false;
+    }
+  });
+  if(check) {
+    attention.push(client);
+    // io.sockets.emit('hello');
+    io.to('controles').emit('addClient', {attention: attention});
+    res.json({body: attention});
+  } else {
+    res.json({err: 'El cliente ya esta en la lista de atencion'});
+  }
 });
 
 app.get('/pickArea', function(req, res) {
@@ -73,7 +78,24 @@ app.get('/pickArea', function(req, res) {
 app.get('/pickAreaSelect/:area', function(req, res) {
   var area = req.params.area;
   req.session.area = area;
-  res.render('controlArea', {area: area});
+  res.render('controlArea', {
+    attention: attention,
+    area: area,
+  });
+});
+
+app.get('/prioritize/:index', function(req, res) {
+  var index = req.params.index;
+  var priorityClient = attention[index];
+  attention.splice(index, 1);
+  var newAtention = [];
+  newAtention.push(priorityClient);
+  attention.forEach(item => {
+    newAtention.push(item);
+  });
+  attention = newAtention;
+  io.to('controles').emit('addClient', {attention: attention});
+  res.json({body: attention});
 });
 
 app.get('/cordinador', function(req, res) {
@@ -95,47 +117,18 @@ app.get('/cordinador', function(req, res) {
     if(err) {
       console.log(err)
     } else {
-      res.render('cordinador', {clients: rows});
+      res.render('cordinador', {
+        clients: rows,
+        attention: attention,
+      });
     }
   });
 });
 
 io.on('connection', function(socket) {
-  function emit(id, action){
-    if (equipments[id] && equipments[id].estado && io.sockets.connected[equipments[id].socket]) {
-      io.sockets.connected[equipments[id].socket].emit(action);
-    }
-  }
 
-  function updateControl(){
-    //io.to('controles').emit('actualizar', {tbody:tbody({lista: equipments, ip: ip}), lista:equipments})
-    io.to('controles').emit('actualizar', {equipments: equipments});
-  }
-
-  function integrar(id) {
-    if(equipments[id].tiempo) {
-      console.log('Usuario reintegrado(tiempo establecido): '+id)
-      const cTime = new Date().getTime()
-      const time = equipments[id].inicio + equipments[id].tiempo
-      if (cTime < time) {
-        console.log('Usuario dentro del tiempo(cTime: '+cTime+' tiempo: '+time+')')
-        emit(id, 'activar')
-      } else {
-        console.log('Usuario fuera del tiempo(cTime: '+cTime+' tiempo: '+time+')')
-        emit(id, 'desactivar')
-      }
-    } else if(equipments[id].inicio){
-      console.log('Usuario reintegrado(libre): '+id);
-      emit(id, 'activar')
-    } else {
-      console.log('Usuario reintegrado(sin iniciar): '+id);
-      emit(id, 'desactivar')
-    }
-    console.log(equipments);
-  }
-
-  socket.on('add-user', function(data){
-    if (!equipments[data.username]){
+  socket.on('add-client', function(data){
+    if (!equipments[data.username]) {
       console.log('usuario agregado: '+data.username);
       equipments[data.username] = {
         'socket': socket.id,
@@ -154,8 +147,8 @@ io.on('connection', function(socket) {
   });
 
   socket.on('add-control', function(data){
-    console.log('control agregado')
-    socket.join('controles')
+    console.log('control agregado');
+    socket.join('controles');
   });
 
   socket.on('add-reloj', function(data){
@@ -177,121 +170,8 @@ io.on('connection', function(socket) {
     updateControl();
   });
 
-  socket.on('cobrar', function(data){
-    equipments[data.username].inicio = null;
-    equipments[data.username].tiempo = null;
-    equipments[data.username].extras = null;
-    console.log("Cobrando: " + data.username);
-    if (equipments[data.username].estado) {
-      emit(data.username, 'desactivar')
-    } else {
-      delete equipments[data.username];
-    }
-    updateControl();
-  });
-
-  socket.on('establecerTiempo', function(data){
-    console.log('Estableciendo tiempo: '+data.username);
-    equipments[data.username].tiempo = data.tiempo;
-    //fucion Establecer tiempo
-    var cTime = new Date().getTime();
-    var timeout = data.tiempo - (cTime - equipments[data.username].inicio)
-    console.log("Fijando tiempo: " + data.username);
-    console.log(equipments)
-    integrar(data.username)
-    clearTimeout(timeouts[data.username]);
-    timeouts[data.username] = setTimeout(function(){
-      console.log('cortamos uso: '+data.username)
-      emit(data.username, 'desactivar')
-    }, timeout)
-    updateControl();
-    io.to('relojes').emit('actualizar');
-  });
-
-  socket.on('dejarLibre', function(data){
-    console.log('dejando Libre');
-    equipments[data.username].tiempo = null
-    integrar(data.username)
-    io.to('relojes').emit('actualizar');
-    updateControl();
-  });
-
-  socket.on('establecerExtras', function(data){
-    console.log('Estableciendo extras: '+data.username);
-    equipments[data.username].extras = data.extras;
-    console.log(equipments);
-    updateControl();
-  });
-
-  socket.on('vaciarExtras', function(data){
-    console.log('vaciando extras: '+data.username);
-    equipments[data.username].extras = null;
-    console.log(equipments);
-    updateControl();
-  });
-
-  socket.on('regalarTiempo', function(data) {
-    var cTime = new Date().getTime()
-    var tTranscurrido = cTime - equipments[data.username].inicio
-    var timeout = (equipments[data.username].tiempo + 300000) - tTranscurrido
-    console.log("Fijando tiempo: " + data.username)
-    emit(data.username, 'activar')
-    clearTimeout(timeouts[data.username])
-    timeouts[data.username] = setTimeout(function() {
-      emit(data.username, 'desactivar')
-    }, timeout)
-  });
-
-  socket.on('cambiarPC', function(data) {
-    console.log('cambiado datos de ('+data.drag+':'+equipments[data.drag].socket+') hacia: ('+data.drop+':'+equipments[data.drop].socket+')');
-    clearTimeout(timeouts[data.drag]);
-    clearTimeout(timeouts[data.drop]);
-    var estadoDrag = equipments[data.drag].estado
-    var estadoDrop = equipments[data.drop].estado
-    var socketDrag = equipments[data.drag].socket
-    var socketDrop = equipments[data.drop].socket
-    var tmpClient = equipments[data.drag];
-    equipments[data.drag] = equipments[data.drop];
-    equipments[data.drop] = tmpClient;
-    equipments[data.drag].socket = socketDrag
-    equipments[data.drop].socket = socketDrop
-    equipments[data.drag].estado = estadoDrag
-    equipments[data.drop].estado = estadoDrop
-    console.log(equipments);
-    if (equipments[data.drag].estado) {
-      integrar(data.drag)
-    } else {
-      delete equipments[data.drag];
-    }
-    if (equipments[data.drop].estado) {
-      integrar(data.drop)
-    } else {
-      delete equipments[data.drop];
-    }
-    updateControl()
-  });
-
-  socket.on('apagar', function(data){
-    console.log("apagando: " + data.username);
-    emit(data.username, 'apagar')
-    delete equipments[data.username];
-    console.log(equipments)
-    updateControl();
-  });
-
   socket.on('disconnect', function(){
-    for (var key in equipments) {
-      if (equipments[key].socket == socket.id) {
-        if (!equipments[key].inicio) {
-          console.log("Desconectando PC: "+ key);
-          delete equipments[key];
-        } else {
-          equipments[key].estado = false
-          console.log('Usuario fuera de linea: '+key);
-        }
-        updateControl();
-      }
-    }
+    console.log('Equipo desconectado');
   });
 });
 

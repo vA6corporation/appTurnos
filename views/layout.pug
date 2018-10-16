@@ -14,7 +14,13 @@ html(lang='es')
     script(src=baseUrl('./js/vue.js'))
     link(rel='stylesheet' href=baseUrl('css/bootstrap.min.css'))
     link(rel="shortcut icon" href="./clock-icon.png")
-  body(style='background-color:transparent')
+    <link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet"> 
+  body.bg-light(style='background-color:transparent')
+    style.
+      html, body {
+        font-family: 'Nunito', sans-serif;
+        font-size: 0.9rem;
+      }
     script.
       formatTiempo = function(tiempo) {
         var horas = 0, minutos = 0;

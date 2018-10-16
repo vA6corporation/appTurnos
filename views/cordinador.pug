@@ -2,23 +2,17 @@ extends ./layout.pug
 block contenido
   #app.container
     h1(id='title').display-5.text-center Control de Turnos
-    .form-row
+    .row
       .col-6
-        table.table.table-striped.table-sm
-          thead
-            th Cliente
-            th Opciones
-          tbody
-            tr(v-for='(item, index) in clients')
-              td {{ `${item.apellidos} ${item.nombres}` }}
-              td 
-                button.btn.btn-info.btn-sm.float-right(@click='addClient(item)') Agregar
+        ul.list-grup
+          li.list-group-item.d-flex.justify-content-between(v-for='(item, index) in clients')
+            | {{ `${item.apellidos} ${item.nombres}` }}
+            a.float-right(href='#' @click='addClient(item)') Agregar
       .col-6
-        table.table.table-striped.table-sm
+        table.table.table-bordered.table-sm.table-striped
           thead
             th N°
-            th Lista de atencion
-            th Opciones
+            th Cliente
           tbody
             tr(v-for='(item, index) in attention')
               td {{ index+1 }}
@@ -30,21 +24,31 @@ block contenido
       el: '#app',
       data: {
         clients: !{JSON.stringify(clients)},
-        attention: [],
+        attention: !{JSON.stringify(attention)},
       },
       methods: {
         addClient: function(client) {
-          fetch('!{baseUrl("setTurn")}', {
-            method: 'post',
-            body: JSON.stringify({client: client}),
+          fetch('!{baseUrl("addClient")}', {
+            headers: {"Content-Type": "application/json"},
+            method: 'POST',
+            body: JSON.stringify(client),
           })
           .then(res => res.json())
           .then(data => {
-            console.log(data);
-          });
+            if(data.err) throw Error(data.err);
+            var attention = data.body;
+            this.attention = attention;
+          })
+          .catch(err => alert(err.message))
         },
         prioritize: function(index) {
-          
+          fetch('!{baseUrl("prioritize/")}' + index)
+          .then(res => res.json())
+          .then(data => {
+            if(data.err) throw Error(data.err);
+            var attention = data.body;
+            this.attention = attention;
+          })
         }
       }
     });

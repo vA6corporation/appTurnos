@@ -1,7 +1,7 @@
 extends ./layout.pug
 block contenido
   nav.navbar.navbar-expand-md.navbar-dark.bg-dark
-    a.navbar-brand.text-capitalize(href='#')= `Control ${area}`
+    a.navbar-brand.text-capitalize(href='#')= `Control de turnos ${area}`
     button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbarsExample04', aria-controls='navbarsExample04', aria-expanded='false', aria-label='Toggle navigation')
       span.navbar-toggler-icon
     #navbarsExample04.collapse.navbar-collapse
@@ -22,28 +22,29 @@ block contenido
             a.dropdown-item(href='#') Something else here
       //form.form-inline.my-2.my-md-0
         input.form-control(placeholder='Search', type='text')
-    a.btn.btn-info(href=baseUrl('pickArea')) Cambiar Area
+    a.btn.btn-info(href=baseUrl('pickArea')) Cambiar de Area
   #app.container.pt-3
     ul.list-group
-      a.list-group-item.list-group-item-action.text-uppercase(v-for='(item, index) in areas' :href=`'${baseUrl("pickAreaSelect/")}'+item`) 
-        | {{item}}
+      li.list-group-item.text-uppercase.d-flex.justify-content-between(v-for='(item, index) in attention' :href=`'${baseUrl("pickAreaSelect/")}'+item`) 
+        | {{item.apellidos}} {{item.nombres}}
+        a(href='#') Llamar
   script.
     var app = new Vue({
       el: '#app',
       data: {
-        areas: [
-          'recepcion1',
-          'recepcion2',
-          'medicina',
-          'musculoesqueletico',
-          'oftalmologia',
-          'rayos x',
-          'laboratorio',
-          'espirometria',
-          'audiometria',
-          'psicologia',
-          'electrocardiograma',
-          'odontologia',
-        ]
+        attention: !{JSON.stringify(attention)},
+      },
+      methods: {
+        call: function() {
+          fetch('!{baseUrl("call")}')
+        }
       }
+    });
+    
+    var socket = io.connect('#{ip}:7766', {reconnect: true});
+    socket.emit("add-control");
+    socket.on("addClient", (data) => {
+      var attention = data.attention;
+      app.attention = attention;
+      console.log('agregaron un cliente');
     });
