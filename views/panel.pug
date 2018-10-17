@@ -1,0 +1,14 @@
+extends ./layout.pug
+block contenido
+  #app.container
+    h1 Control de turnos
+    ul.list-group
+      li.list-group-item(v-for='(item, index) in attention') {{item.apellidos}} {{item.nombres}}
+  script.
+    var app = new Vue({
+      el: '#app',
+      data: {
+        attention: !{JSON.stringify(attention)},
+      }
+    });
+      

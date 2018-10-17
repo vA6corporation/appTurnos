@@ -75,6 +75,10 @@ app.get('/pickArea', function(req, res) {
   res.render('pickArea');
 });
 
+app.get('/panel', function(req, res) {
+  res.render('panel', {attention: attention});
+});
+
 app.get('/pickAreaSelect/:area', function(req, res) {
   var area = req.params.area;
   req.session.area = area;

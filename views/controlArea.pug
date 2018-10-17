@@ -5,24 +5,22 @@ block contenido
     button.navbar-toggler(type='button', data-toggle='collapse', data-target='#navbarsExample04', aria-controls='navbarsExample04', aria-expanded='false', aria-label='Toggle navigation')
       span.navbar-toggler-icon
     #navbarsExample04.collapse.navbar-collapse
-      //ul.navbar-nav.mr-auto
-        li.nav-item.active
+      ul.navbar-nav.ml-auto
+        //li.nav-item.active
           a.nav-link(href='#')
             | Home 
             span.sr-only (current)
-        li.nav-item
+        //li.nav-item
           a.nav-link(href='#') Link
-        li.nav-item
+        //li.nav-item
           a.nav-link.disabled(href='#') Disabled
-        li.nav-item.dropdown
+        //li.nav-item.dropdown
           a#dropdown04.nav-link.dropdown-toggle(href='https://example.com', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false') Dropdown
           .dropdown-menu(aria-labelledby='dropdown04')
             a.dropdown-item(href='#') Action
             a.dropdown-item(href='#') Another action
             a.dropdown-item(href='#') Something else here
-      //form.form-inline.my-2.my-md-0
-        input.form-control(placeholder='Search', type='text')
-    a.btn.btn-info(href=baseUrl('pickArea')) Cambiar de Area
+      a.btn.btn-info(href=baseUrl('pickArea')) Seleccionar area
   #app.container.pt-3
     ul.list-group
       li.list-group-item.text-uppercase.d-flex.justify-content-between(v-for='(item, index) in attention' :href=`'${baseUrl("pickAreaSelect/")}'+item`) 
