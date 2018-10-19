@@ -75,6 +75,7 @@ app.post('/attend', function(req, res) {
     console.log(attention[index].areas[attend.area]);
     if(item.idpaciente == attend.idpaciente) {
       attention[index].areas[attend.area] = true;
+      attention[index].position = '';
     }
   });
   io.to('controles').emit('addClient', {attention: attention});
