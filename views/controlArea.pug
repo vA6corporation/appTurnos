@@ -6,35 +6,58 @@ block contenido
       span.navbar-toggler-icon
     #navbarsExample04.collapse.navbar-collapse
       ul.navbar-nav.ml-auto
-        //li.nav-item.active
-          a.nav-link(href='#')
-            | Home 
-            span.sr-only (current)
-        //li.nav-item
-          a.nav-link(href='#') Link
-        //li.nav-item
-          a.nav-link.disabled(href='#') Disabled
-        //li.nav-item.dropdown
-          a#dropdown04.nav-link.dropdown-toggle(href='https://example.com', data-toggle='dropdown', aria-haspopup='true', aria-expanded='false') Dropdown
-          .dropdown-menu(aria-labelledby='dropdown04')
-            a.dropdown-item(href='#') Action
-            a.dropdown-item(href='#') Another action
-            a.dropdown-item(href='#') Something else here
       a.btn.btn-info(href=baseUrl('pickArea')) Seleccionar area
   #app.container.pt-3
-    ul.list-group
-      li.list-group-item.text-uppercase.d-flex.justify-content-between(v-for='(item, index) in attention' :href=`'${baseUrl("pickAreaSelect/")}'+item`) 
-        | {{item.apellidos}} {{item.nombres}}
-        a(href='#') Llamar
+    .row
+      .col
+        ul.list-group
+          li.list-group-item.text-uppercase.d-flex.justify-content-between.list-group-item-info
+            | Lista de Pacientes en Espera
+          li.list-group-item.text-uppercase.d-flex.justify-content-between(v-for='(item, index) in attention' :href=`'${baseUrl("pickAreaSelect/")}'+item`) 
+            | {{item.apellidos}} {{item.nombres}}
+            span(v-if='item.position') en {{item.position}}
+            a(href='#' @click='call(index)' v-else) Llamar
+      .col-6
+        ul.list-group
+          li.list-group-item.text-uppercase.d-flex.justify-content-between.list-group-item-info
+            | Lista de Pacientes Atendidos
+          div(v-for='(item, index) in attention')
+            li.list-group-item.text-uppercase.d-flex.justify-content-between(v-if='item.areas[area] || item.position == area' :href=`'${baseUrl("pickAreaSelect/")}'+item`) 
+              | {{item.apellidos}} {{item.nombres}}
+              a(href='#' @click='attend(index)' v-if='!item.areas[area]') Atendido
   script.
     var app = new Vue({
       el: '#app',
       data: {
+        area: '!{area}',
         attention: !{JSON.stringify(attention)},
       },
       methods: {
-        call: function() {
-          fetch('!{baseUrl("call")}')
+        call: function(index) {
+          var client = this.attention[index];
+          client.call = this.area;
+          fetch('!{baseUrl("call")}', {
+            headers: {"Content-Type": "application/json"},
+            method: 'POST',
+            body: JSON.stringify({client: client}),
+          })
+          .then(res => res.json())
+          .then(data => {
+            console.log(data);
+          });
+        },
+        attend: function(index) {
+          var idpaciente = this.attention[index].idpaciente;
+          console.log(idpaciente);
+          fetch('!{baseUrl("attend")}', {
+            headers: {"Content-Type": "application/json"},
+            method: 'POST',
+            body: JSON.stringify({attend : {idpaciente: idpaciente, area: this.area}}),
+          })
+          .then(res => res.json())
+          .then(data => {
+            console.log(data);
+          });
         }
       }
     });

@@ -27,6 +27,9 @@ block contenido
     .row
       .col-6
         ul.list-grup
+          li.list-group-item.d-flex.justify-content-between.list-group-item-info 
+            | Lista de Atencion
+            span {{date}}
           li.list-group-item.d-flex.justify-content-between(v-for='(item, index) in clients')
             | {{ `${item.apellidos} ${item.nombres}` }}
             a.float-right(href='#' @click='addClient(item)') Agregar
@@ -35,6 +38,7 @@ block contenido
           thead
             th N°
             th Cliente
+            th Opciones
           tbody
             tr(v-for='(item, index) in attention')
               td {{ index+1 }}
@@ -47,13 +51,14 @@ block contenido
       data: {
         clients: !{JSON.stringify(clients)},
         attention: !{JSON.stringify(attention)},
+        date: '!{date}',
       },
       methods: {
         addClient: function(client) {
           fetch('!{baseUrl("addClient")}', {
             headers: {"Content-Type": "application/json"},
             method: 'POST',
-            body: JSON.stringify(client),
+            body: JSON.stringify({client: client}),
           })
           .then(res => res.json())
           .then(data => {

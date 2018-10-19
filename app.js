@@ -6,8 +6,22 @@ const io = require('socket.io')(server);
 const bodyParser = require('body-parser');
 const ip = '192.168.1.202';
 
+var areas = {
+  'recepcion1': false,
+  'recepcion2': false,
+  'medicina': false,
+  'musculoesqueletico': false,
+  'oftalmologia': false,
+  'rayosX': false,
+  'laboratorio': false,
+  'espirometria': false,
+  'audiometria': false,
+  'psicologia': false,
+  'electrocardiograma': false,
+  'odontologia': false,
+}
 var attention = [];
-var areas = [];
+// var areas = [];
 
 //app.set('trust proxy', 1); // trust first proxy
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -47,14 +61,28 @@ app.get('/', function(req, res) {
   if (area) {
     res.render('controlArea', {
       area: area,
-    })
+    });
   } else {
     res.render('pickArea');
   }
 });
 
+app.post('/attend', function(req, res) {
+  var attend = req.body.attend;
+  console.log(attend);
+  attention.forEach((item, index) => {
+    console.log(`${item.idpaciente} == ${attend.idpaciente}`);
+    console.log(attention[index].areas[attend.area]);
+    if(item.idpaciente == attend.idpaciente) {
+      attention[index].areas[attend.area] = true;
+    }
+  });
+  io.to('controles').emit('addClient', {attention: attention});
+  res.json({ok: true});
+});
+
 app.post('/addClient', function(req, res) {
-  var client = req.body;
+  var client = req.body.client;
   var check = true;
   attention.forEach(item => {
     if(client.idpaciente == item.idpaciente) {
@@ -62,13 +90,32 @@ app.post('/addClient', function(req, res) {
     }
   });
   if(check) {
+    client.areas = {};
+    Object.assign(client.areas, areas);
+    client.position = '';
     attention.push(client);
-    // io.sockets.emit('hello');
     io.to('controles').emit('addClient', {attention: attention});
     res.json({body: attention});
   } else {
     res.json({err: 'El cliente ya esta en la lista de atencion'});
   }
+});
+
+app.post('/call', function(req, res) {
+  var client = req.body.client;
+  attention.forEach((item, index) => {
+    if(item.position == client.call) {
+      attention[index].position = '';
+    }
+  });
+  attention.forEach((item, index) => {
+    if(item.idpaciente == client.idpaciente) {
+      attention[index].position = client.call;
+    }
+  });
+  io.to('controles').emit('call', {client: client});
+  io.to('controles').emit('addClient', {attention: attention});
+  res.json({ok: true});
 });
 
 app.get('/pickArea', function(req, res) {
@@ -108,8 +155,8 @@ app.get('/cordinador', function(req, res) {
   req.session.area = 'cordinador';
   var year = new Date().getFullYear();
   var month = new Date().getMonth()+1;
-  var day = new Date().getDate()-2;
-  console.log(`${year}-${month}-${day}`);
+  var day = new Date().getDate();
+  var date = `${year}-${month}-${day}`;
   connection.query(`SELECT
       cmvisitas.fecha,
       paciente.idpaciente,
@@ -124,6 +171,7 @@ app.get('/cordinador', function(req, res) {
       res.render('cordinador', {
         clients: rows,
         attention: attention,
+        date: date,
       });
     }
   });

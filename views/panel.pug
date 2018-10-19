@@ -1,14 +1,41 @@
 extends ./layout.pug
 block contenido
-  #app.container
-    h1 Control de turnos
+  #app.container-fluid
+    h1.display-2.text-center Control de turnos
     ul.list-group
-      li.list-group-item(v-for='(item, index) in attention') {{item.apellidos}} {{item.nombres}}
+      li.list-group-item.h1(v-for='(item, index) in attention') {{item.apellidos}} {{item.nombres}}
+    #message.fixed-bottom.bg-dark.text-white.font-weight-bold(v-if='calls.length')
+      .row.py-3.text-uppercase(v-for='(item, index) in calls')
+        .col-12
+          h1.text-center {{item.apellidos}} {{item.nombres}}
+          h1.text-center PASE A
+          h1.text-center {{item.call}}
+        .col-12.bg-white.pt-2
+          
   script.
     var app = new Vue({
       el: '#app',
       data: {
         attention: !{JSON.stringify(attention)},
+        calls: [],
       }
     });
-      
+    
+    setInterval(function() {
+      $('#message').toggleClass('text-danger');
+    }, 1000);
+    
+    var socket = io.connect('#{ip}:7766', {reconnect: true});
+    socket.emit("add-control");
+    socket.on("addClient", (data) => {
+      var attention = data.attention;
+      app.attention = attention;
+      console.log('agregaron un cliente');
+    });
+    
+    socket.on("call", (data) => {
+      var client = data.client;
+      app.calls.push(client);
+      setTimeout(function() {app.calls.splice(0, 1)}, 10000)
+      console.log('llamaron a un cliene');
+    });
